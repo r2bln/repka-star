@@ -1,10 +1,3 @@
-'''
-
-# Upload the firmware
-eval sudo $STM32FLASH -v -w ${mmdvm_fw_bin} -g 0x0 -R -i 20,-21,21:-20,21 /dev/ttyAMA0
-
-'''
-
 import os
 import sys
 import RepkaPi.GPIO as GPIO
