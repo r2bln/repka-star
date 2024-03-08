@@ -11,9 +11,6 @@ import RepkaPi.GPIO as GPIO
 
 cmd = sys.argv[1]
 
-os.system("rm -rf *.bin")
-os.system("wget https://github.com/juribeparada/MMDVM_HS/releases/download/v1.5.2/mmdvm_hs_hat_fw.bin")
-
 GPIO.setboard(GPIO.REPKAPI3) # не обязательно если в constants.py при установки библиотеки установить константу GPIO.DEFAULTBOARD
 print(GPIO.getboardmodel())
 GPIO.setmode(GPIO.BCM)
@@ -30,6 +27,8 @@ elif cmd == 'exit':
     GPIO.output(20, -1)
     GPIO.output(21, 1)
 elif cmd == 'flash':
+    os.system("rm -rf *.bin")
+    os.system("wget https://github.com/juribeparada/MMDVM_HS/releases/download/v1.5.2/mmdvm_hs_hat_fw.bin")
     print('enter bootloader mode')
     GPIO.output(20, 1)
     GPIO.output(21, -1)
