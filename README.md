@@ -120,21 +120,49 @@ RSSIMappingFile=/root/sources/Public_scripts/RSSI_GM340_DEIv1.1.dat
 
 RSSI_GM340_DEIv1.1.dat я взял тут https://github.com/g4klx/MMDVMHost/blob/master/RSSI/RSSI_GM340_DEIv1.1.dat
 ## Запускаем
-Никакого [pistar](https://www.pistar.uk/) на Repka Pi не предвидется как минимум потому что исходников в открытом доступе нет, так что будем запускать руками. Для этого удобно использовать [tmux](https://ru.wikipedia.org/wiki/Tmux)
+Никакого [pistar](https://www.pistar.uk/) на Repka Pi не предвидется как минимум потому что исходников в открытом доступе нет, так что будем запускать руками.
 
-- создаю дополнительный терминал через `Ctrl+b+c`
-- перехожу в новый терминал `Ctrl+b+1`
-- делю его пвертикали `Ctrl+b+%`
-- справа (`Ctrl+b+->`) запускаю `./DMRGateway /etc/dmrgateway`
-- слева  (`Ctrl+b+<-`) `./MMDVMHost /etc/mmdvmhost`
-- и детачусь через `Ctrl+B+D`
+Я сделал `systemd` файлы [mmdvm.service](mmdvm.service) и [dmrgateway.service](dmrgateway.service) чтобы их использовать:
 
-Как-то так
-![tmux](./files/tmux.png)
+- внутри можно поменять пути для `pid` файлов и расположения бинарей туда где всё лежит на вашей системе
+- скопировать файлы `*.system` в `/etc/systemd/system`
+- инициализировать
+    ```bash
+    systemctl enable mmdvm
+    systemctl enable dmrgateway
+    ```
+- перезагрузиться
+- сервисы должны запуститься самостоятельно проверить это можно с помощью команды `status`
+    ```bash
+        > systemctl status mmdvm
+
+        ● mmdvm.service - MMDVMHost
+        Loaded: loaded (/etc/systemd/system/mmdvm.service; enabled; vendor preset: enabled)
+        Active: active (running) since Sat 2024-03-09 20:47:25 MSK; 18min ago
+        Main PID: 390 (MMDVMHost)
+        Tasks: 2 (limit: 2230)
+        Memory: 3.2M
+        CGroup: /system.slice/mmdvm.service
+                └─390 /root/sources/MMDVMHost/MMDVMHost /etc/mmdvmhost
+        
+        ...
+
+        > systemctl status dmrgateway
+
+        ● dmrgateway.service - DMRGateway
+        Loaded: loaded (/etc/systemd/system/dmrgateway.service; enabled; vendor preset: enabled)
+        Active: active (running) since Sat 2024-03-09 20:47:25 MSK; 19min ago
+        Main PID: 388 (DMRGateway)
+        Tasks: 1 (limit: 2230)
+        Memory: 1.5M
+        CGroup: /system.slice/dmrgateway.service
+                └─388 /root/sources/DMRGateway/DMRGateway /etc/dmrgateway
+
+    ```
+
 # Выводы
 
 1. Сделать хотспот на Repka Pi можно - **всё работает**
 2. Установку и запуск автоматизировать несложно - надо просто заюзать скрипты [QRA-Team](https://5973.ru/) немного их подрихтовав
 3. Компилировать программы [MMDVMHost](https://github.com/g4klx/MMDVMHost) и [DMRGateway](https://github.com/g4klx/DMRGateway) самостоятельно необязательно можно собрать и распространять уже готовые бинари
-4. Запуск тоже несложно демонизировать - через system.d файлы
-5. Единственная проблема - конфигурирование на лету через Web-интерфейс который предоставляет pistar - портировать его невозможно так как нет доступа к исходникам - остается только писать свой
+4. Единственная проблема - конфигурирование на лету через Web-интерфейс который предоставляет pistar - портировать его невозможно так как нет доступа к исходникам - остается только писать свой
