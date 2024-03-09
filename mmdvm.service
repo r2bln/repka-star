@@ -2,7 +2,7 @@
 Description=MMDVMHost
 
 [Service]
-Type=forking
+Type=simple
 PIDFile=/home/mmdvm/mmdvmhost.pid
 WorkingDirectory=/home/mmdvm/
 

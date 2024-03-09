@@ -1,11 +1,8 @@
 [Unit]
 Description=DMRGateway
-After=mmdvm.service
-Requires=mmdvm.service
-Wants=mmdvm.service
 
 [Service]
-Type=forking
+Type=simple
 PIDFile=/home/mmdvm/dmrgateway.pid
 WorkingDirectory=/home/mmdvm/
 
