@@ -1,0 +1,20 @@
+[Unit]
+Description=MMDVMHost
+
+[Service]
+Type=forking
+PIDFile=/home/mmdvm/mmdvmhost.pid
+WorkingDirectory=/home/mmdvm/
+
+User=root
+Group=root
+
+OOMScoreAdjust=-1000
+
+ExecStart=/root/sources/MMDVMHost/MMDVMHost /etc/mmdvmhost
+ExecStop=/bin/kill -HUP $MAINPID
+ExecReload=/bin/kill -HUP $MAINPID
+TimeoutSec=300
+
+[Install]
+WantedBy=multi-user.target 

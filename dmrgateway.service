@@ -1,0 +1,23 @@
+[Unit]
+Description=DMRGateway
+After=mmdvm.service
+Requires=mmdvm.service
+Wants=mmdvm.service
+
+[Service]
+Type=forking
+PIDFile=/home/mmdvm/dmrgateway.pid
+WorkingDirectory=/home/mmdvm/
+
+User=root
+Group=root
+
+OOMScoreAdjust=-1000
+
+ExecStart=/root/sources/DMRGateway/DMRGateway /etc/dmrgateway
+ExecStop=/bin/kill -HUP $MAINPID
+ExecReload=/bin/kill -HUP $MAINPID
+TimeoutSec=300
+
+[Install]
+WantedBy=multi-user.target 
