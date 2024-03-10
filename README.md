@@ -6,6 +6,7 @@
 Пока просто заметки. 
 
 ![repka-star](./files/IMG_20240309_122749_cut.jpg)
+![repka-star-case](./files/IMG_20240309_154414.jpg)
 # Железки
 - MMDVM_HS_HAT c [Aliexpress](https://aliexpress.ru/item/32915442246.html?spm=a2g2w.orderdetail.0.0.48e84aa6vTCf5Q&sku_id=12000024784954883)
 - [Repka Pi 3](https://repka-pi.ru/) v. 1.3 2Gb
