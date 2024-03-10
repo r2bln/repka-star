@@ -14,10 +14,10 @@ git clone https://github.com/g4klx/DMRGateway
 echo 'Building software'
 cd MMDVMHost
 make
-cp MMDVMHost ../
+cp MMDVMHost ../mmdvmhost
 cd ../DMRGateway
 make 
-cp DMRGateway ../
+cp DMRGateway ../dmrgateway
 cd ../
 
 echo 'Downloading configs'
