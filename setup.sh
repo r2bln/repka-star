@@ -5,7 +5,20 @@ mkdir tmp
 cd tmp
 
 echo 'Installing deps'
-apt install -y ripgrep
+apt install -y ripgrep cmake make g++ git libsamplerate-dev python3-dev python3-setuptools
+
+echo 'Cloning software'
+git clone https://github.com/g4klx/MMDVMHost
+git clone https://github.com/g4klx/DMRGateway
+
+echo 'Building software'
+cd MMDVMHost
+make
+cp MMDVMHost ../
+cd ../DMRGateway
+make 
+cp DMRGateway ../
+cd ../
 
 echo 'Downloading configs'
 wget --quiet -P /etc/ https://github.com/krot4u/Public_scripts/raw/master/DMRIds.dat
@@ -19,5 +32,3 @@ rm -f /etc/XLXHosts.txt
 
 echo "# This XLXHosts.txt is fake and contains only QRA Team XLX server" >> /etc/XLXHosts.txt
 echo "496;$ip;4001" >> /etc/XLXHosts.txt
-
-systemctl restart dmrgateway
