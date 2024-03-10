@@ -4,7 +4,7 @@ import RepkaPi.GPIO as GPIO
 
 cmd = sys.argv[1]
 
-GPIO.setboard(GPIO.REPKAPI3) # не обязательно если в constants.py при установки библиотеки установить константу GPIO.DEFAULTBOARD
+GPIO.setboard(GPIO.REPKAPI3)
 print(GPIO.getboardmodel())
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(20, GPIO.OUT)
