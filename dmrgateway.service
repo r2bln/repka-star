@@ -1,8 +1,13 @@
 [Unit]
 Description=DMRGateway
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=30
+StartLimitBurst=3
 
 [Service]
 Type=simple
+Restart=on-failure
 PIDFile=/home/mmdvm/dmrgateway.pid
 WorkingDirectory=/home/mmdvm/
 

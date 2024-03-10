@@ -1,8 +1,11 @@
 [Unit]
 Description=MMDVMHost
+StartLimitIntervalSec=30
+StartLimitBurst=3
 
 [Service]
 Type=simple
+Restart=on-failure
 PIDFile=/home/mmdvm/mmdvmhost.pid
 WorkingDirectory=/home/mmdvm/
 
