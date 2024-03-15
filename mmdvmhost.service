@@ -6,15 +6,15 @@ StartLimitBurst=3
 [Service]
 Type=simple
 Restart=on-failure
-PIDFile=/home/mmdvm/mmdvmhost.pid
-WorkingDirectory=/home/mmdvm/
+PIDFile=/root/mmdvmhost.pid
+WorkingDirectory=/root/
 
 User=root
 Group=root
 
 OOMScoreAdjust=-1000
 
-ExecStart=/root/sources/MMDVMHost/MMDVMHost /etc/mmdvmhost
+ExecStart=/etc/mmdvmhost /etc/mmdvmhost.cfg
 ExecStop=/bin/kill -HUP $MAINPID
 ExecReload=/bin/kill -HUP $MAINPID
 TimeoutSec=300

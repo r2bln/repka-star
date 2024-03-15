@@ -99,27 +99,13 @@ MMDVM_HS_Hat-v1.5.2 20201108 14.7456MHz ADF7021 FW by CA6JAU GitID #89daa20
 ## Собираем софт
 Клонируем репозитории [MMDVMHost](https://github.com/g4klx/MMDVMHost) и [DMRGateway](https://github.com/g4klx/DMRGateway) и собираем - у обоих в описании есть инструкция, но по сути оно водится к запуску `make` и оно всё собирается. Получаем на выходе 2 бинаря.
 ## Конфигурируем софт
-Качаем репозиторий с публичными скриптами [QRA-Team](https://5973.ru/) https://github.com/krot4u/Public_scripts 
-Запускаем скрипт `configure-pistar.sh` 
-Скрипт отработает частично - спросит нас DMR Id, желаемую частоту и сломается. Но сможет создать два файла конфигурации
-```
-/etc/dmrgateway
-/etc/mmdvmhost
-```
-Эти конфиги можно открыть и подрихтовать под себя. Я например поменял пути для некоторых справочников, добавил свой позывной который почему-то не прописался
-```
-[DMR Id Lookup]
-File=/root/sources/Public_scripts/DMRIds.dat
-Time=6
+В этом репозитории лежит два конфига 
 
-...
+- [mmdvmhost.cfg](mmdvmhost.cfg)
+- [dmrgateway.cfg](dmrgateway.cfg)
 
-[Modem]
-...
-RSSIMappingFile=/root/sources/Public_scripts/RSSI_GM340_DEIv1.1.dat
-```
+Из этих конфигов выкинуто все лишнее (на мой взгляд ну и то что точно не работает) Их можно открыть и подрихтовать под себя. Поменять частоту работы, описание хотспота, позывной и прочее.
 
-RSSI_GM340_DEIv1.1.dat я взял тут https://github.com/g4klx/MMDVMHost/blob/master/RSSI/RSSI_GM340_DEIv1.1.dat
 ## Запускаем
 Никакого [pistar](https://www.pistar.uk/) на Repka Pi не предвидется как минимум потому что исходников в открытом доступе нет, так что будем запускать руками.
 
@@ -129,22 +115,22 @@ RSSI_GM340_DEIv1.1.dat я взял тут https://github.com/g4klx/MMDVMHost/blo
 - скопировать файлы `*.system` в `/etc/systemd/system`
 - инициализировать
     ```bash
-    systemctl enable mmdvm
+    systemctl enable mmdvmhost
     systemctl enable dmrgateway
     ```
 - перезагрузиться
 - сервисы должны запуститься самостоятельно проверить это можно с помощью команды `status`
     ```bash
-        > systemctl status mmdvm
+        > systemctl status mmdvmhost
 
-        ● mmdvm.service - MMDVMHost
-        Loaded: loaded (/etc/systemd/system/mmdvm.service; enabled; vendor preset: enabled)
+        ● mmdvmhost.service - MMDVMHost
+        Loaded: loaded (/etc/systemd/system/mmdvmhost.service; enabled; vendor preset: enabled)
         Active: active (running) since Sat 2024-03-09 20:47:25 MSK; 18min ago
         Main PID: 390 (MMDVMHost)
         Tasks: 2 (limit: 2230)
         Memory: 3.2M
-        CGroup: /system.slice/mmdvm.service
-                └─390 /root/sources/MMDVMHost/MMDVMHost /etc/mmdvmhost
+        CGroup: /system.slice/mmdvmhost.service
+                └─390 /etc/mmdvmhost /etc/mmdvmhost.cfg
         
         ...
 
@@ -157,7 +143,7 @@ RSSI_GM340_DEIv1.1.dat я взял тут https://github.com/g4klx/MMDVMHost/blo
         Tasks: 1 (limit: 2230)
         Memory: 1.5M
         CGroup: /system.slice/dmrgateway.service
-                └─388 /root/sources/DMRGateway/DMRGateway /etc/dmrgateway
+                └─388 /etc/dmrgateway /etc/dmrgateway.cfg
 
     ```
 
