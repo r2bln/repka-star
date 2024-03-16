@@ -16,7 +16,7 @@ Group=root
 
 OOMScoreAdjust=-1000
 
-ExecStart=/etc/dmrgateway /etc/dmrgateway.cfg
+ExecStart=/usr/bin/dmrgateway /etc/DMRGateway/dmrgateway.cfg
 ExecStop=/bin/kill -HUP $MAINPID
 ExecReload=/bin/kill -HUP $MAINPID
 TimeoutSec=300

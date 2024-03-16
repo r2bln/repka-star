@@ -14,7 +14,7 @@ Group=root
 
 OOMScoreAdjust=-1000
 
-ExecStart=/etc/mmdvmhost /etc/mmdvmhost.cfg
+ExecStart=/usr/bin/mmdvmhost /etc/MMDVMHost/mmdvmhost.cfg
 ExecStop=/bin/kill -HUP $MAINPID
 ExecReload=/bin/kill -HUP $MAINPID
 TimeoutSec=300

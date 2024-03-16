@@ -1,5 +1,14 @@
 #!/usr/bin/bash
 
+echo 'Cleanup'
+rm -rf /var/log/DMRGateway
+rm -rf /var/log/MMDVMHost
+rm -rf /etc/DMRGateway
+rm -rf /etc/MMDVMHost
+rm -rf /usr/bin/dmrgateway
+rm -rf /usr/bin/mmdvmhost
+rm -rf /etc/systemd/system/mmdvmhost.service
+rm -rf /etc/systemd/system/dmrgateway.service
 rm -rf tmp
 mkdir tmp
 cd tmp
@@ -18,17 +27,32 @@ cp MMDVMHost ../mmdvmhost
 cd ../DMRGateway
 make 
 cp DMRGateway ../dmrgateway
-cd ../
+cd ../../
+
+echo 'Setup directories for daemons'
+mkdir /var/log/DMRGateway
+mkdir /var/log/MMDVMHost
+mkdir /etc/DMRGateway
+mkdir /etc/MMDVMHost
+
+echo 'Copy binaries and configs'
+cp ./tmp/mmdvmhost /usr/bin
+cp ./tmp/dmrgateway /usr/bin
+cp mmdvmhost.cfg /etc/MMDVMHost
+cp dmrgateway.cfg /etc/DMRGateway
+cp mmdvmhost.service /etc/systemd/system/
+cp dmrgateway.service /etc/systemd/system/
 
 echo 'Downloading configs'
-wget --quiet -P /etc/ https://github.com/krot4u/Public_scripts/raw/master/DMRIds.dat
-wget --quiet -P /etc/ https://raw.githubusercontent.com/g4klx/MMDVMHost/master/RSSI/RSSI_GM340_DEIv1.1.dat
+wget --quiet -P /etc/MMDVMHost https://github.com/krot4u/Public_scripts/raw/master/DMRIds.dat
+wget --quiet -P /etc/MMDVMHost https://raw.githubusercontent.com/g4klx/MMDVMHost/master/RSSI/RSSI_GM340_DEIv1.1.dat
 
 echo 'Geting QRA Team XLX server ip:'
 ip=$(host qra-team.online | rg -o "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")
+echo $ip
 
 echo 'Generate fake XLXHosts.txt'
-rm -f /etc/XLXHosts.txt
+rm -f /etc/DMRGateway/XLXHosts.txt
 
-echo "# This XLXHosts.txt is fake and contains only QRA Team XLX server" >> /etc/XLXHosts.txt
-echo "496;$ip;4001" >> /etc/XLXHosts.txt
+echo "# This XLXHosts.txt is fake and contains only QRA Team XLX server" >> /etc/DMRGateway/XLXHosts.txt
+echo "496;$ip;4001" >> /etc/DMRGateway/XLXHosts.txt
