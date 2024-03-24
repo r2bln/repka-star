@@ -18,7 +18,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		os.Exit(1)
 	}
 
-	section, _ := cfg.GetSection(r.URL.Path[1:])
+	section, _ := cfg.GetSection(r.URL.Path[5:])
 
 	data := map[string]any{}
 	for key, val := range section.KeysHash() {
@@ -38,6 +38,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/", handler)
+	fs := http.FileServer(http.Dir("/home/ivan/sources/repka-star/webapp/web/repkastar/dist/"))
+	http.Handle("/", fs)
+	http.HandleFunc("/api/", handler)
 	log.Fatal(http.ListenAndServe(":8085", nil))
 }
