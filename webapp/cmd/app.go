@@ -1,17 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 )
 
-func main() {
-	fs := http.FileServer(http.Dir("../web/static"))
-	http.Handle("/", fs)
+func handler(w http.ResponseWriter, r *http.Request) {
+	file, _ := os.ReadFile("/home/ivan/sources/repka-star/mmdvmhost.service")
+	fmt.Fprint(w, string(file))
+}
 
-	log.Print("Listening on :8080...")
-	err := http.ListenAndServe(":8080", nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+func main() {
+	http.HandleFunc("/", handler)
+	log.Fatal(http.ListenAndServe(":8085", nil))
 }
