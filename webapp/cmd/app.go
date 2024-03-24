@@ -34,6 +34,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		os.Exit(1)
 	}
 
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	fmt.Fprint(w, string(js))
 }
 
