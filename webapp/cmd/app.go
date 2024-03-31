@@ -26,8 +26,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		data = append(data, map[string]any{"key": key, "value": val})
 	}
 
-	print(data)
-
 	js, err := json.Marshal(data)
 
 	if err != nil {
