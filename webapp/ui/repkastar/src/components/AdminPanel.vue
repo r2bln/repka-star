@@ -9,7 +9,7 @@ export default {
         }
     },
     mounted() {
-        fetch("http://localhost:8085/api/General")
+        fetch("http://localhost:8085/api/Info")
             .then(response => response.json())
             .then(json => {
                 this.config = json
