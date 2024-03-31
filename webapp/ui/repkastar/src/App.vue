@@ -14,7 +14,7 @@ const editor = ref(null)
       <v-list-item link title="General" @click="resetEditor('General')"></v-list-item>
       <v-list-item link title="Modem" @click="resetEditor('Modem')"></v-list-item>
     </v-navigation-drawer>
-    <ConfigEditor ref="editor" location="Info" />
+    <ConfigEditor ref="editor"/>
   </v-app>
 </template>
 
@@ -25,6 +25,9 @@ export default {
     resetEditor(loc) {
       this.$refs.editor.navigate(loc)
     }
+  },
+  mounted() {
+    this.resetEditor("Info")
   }
 }
 

@@ -1,11 +1,6 @@
-<script setup>
-const props = defineProps(['location'])
-console.log(props.location)
-</script>
-
 <template>
     <v-spacer class="align-self-center w-50">
-        <h1>MMDVM Config [{{ location }}] section</h1>
+        <h1>MMDVM Config [{{ section }}] section</h1>
         <form @submit.prevent="submit">
             <template v-for="item in config">
                 <p>{{item.key}}</p>
@@ -23,17 +18,14 @@ console.log(props.location)
 
 export default {
     name: "ConfigEditor",
-    props: ["location"],
-    setup(props) {
-        console.log(props.location)
-    },
     data() {
         return {
+            section: '',
             config: {}
         }
     },
     mounted() {
-        fetch("http://localhost:8085/api/" + this.location)
+        fetch("http://localhost:8085/api/" + this.section)
             .then(response => response.json())
             .then(json => {
                 this.config = json
@@ -41,8 +33,9 @@ export default {
     },
     expose: ['navigate'],
     methods: {
-        navigate(location) {
-            fetch("http://localhost:8085/api/" + location)
+        navigate(section) {
+            this.section = section
+            fetch("http://localhost:8085/api/" + section)
             .then(response => response.json())
             .then(json => {
                 this.config = json
