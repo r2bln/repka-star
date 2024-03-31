@@ -20,10 +20,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	section, _ := cfg.GetSection(r.URL.Path[5:])
 
-	data := map[string]any{}
+	data := []map[string]any{}
 	for key, val := range section.KeysHash() {
 		fmt.Printf("%s - %s\r\n", key, val)
-		data[key] = val
+		data = append(data, map[string]any{"key": key, "value": val})
 	}
 
 	print(data)
