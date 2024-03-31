@@ -21,6 +21,10 @@ const title = 'MMDVM Admin panel'
         <v-btn @click="handleReset">
             clear
         </v-btn>
+
+        <v-btn @click="setUrl">
+            set url
+        </v-btn>
     </form>
 </template>
 
@@ -40,6 +44,12 @@ export default {
             .then(json => {
                 this.config = json
             });
+    },
+    methods: {
+      setUrl () {
+        this.config.URL = 'http://some-other-url.ru'
+      }
     }
 }
+
 </script>
