@@ -1,3 +1,29 @@
+<script setup>
+
+import { ref } from 'vue'
+import { useField, useForm } from 'vee-validate'
+
+const url = useField('url')
+const title = 'MMDVM Admin panel'
+
+</script>
+
+<template>
+    <h1>{{ title }}</h1>
+    <form @submit.prevent="submit">
+        <v-text-field v-model="config.URL" :counter="10" :error-messages="url.errorMessage.value"
+            label="url"></v-text-field>
+
+        <v-btn class="me-4" type="submit">
+            submit
+        </v-btn>
+
+        <v-btn @click="handleReset">
+            clear
+        </v-btn>
+    </form>
+</template>
+
 <script>
 
 export default {
@@ -16,13 +42,4 @@ export default {
             });
     }
 }
-
 </script>
-
-<template>
-    <h1>{{ title }}</h1>
-    <h3>Props:</h3>
-    <div v-for="(value, key) in config" :key="key">
-        {{ key }}: {{ value }}
-    </div>
-</template>
