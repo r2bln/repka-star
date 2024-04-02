@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -50,7 +49,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	data, err := ioutil.ReadFile(os.Args[1])
+	data, err := os.ReadFile(os.Args[1])
 
 	if err != nil {
 		log.Fatalf("Could not open file %s", os.Args[1])
