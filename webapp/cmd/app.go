@@ -3,15 +3,27 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 
 	"gopkg.in/ini.v1"
+	"gopkg.in/yaml.v2"
 )
 
+type Cfg struct {
+	Webapp struct {
+		Port   string `yaml: "port"`
+		Path   string `yaml: "path"`
+		Static string `yaml: "static"`
+	}
+}
+
+var cfg Cfg
+
 func handler(w http.ResponseWriter, r *http.Request) {
-	cfg, err := ini.Load("/home/ivan/sources/repka-star/mmdvmhost.cfg")
+	cfg, err := ini.Load(cfg.Webapp.Path + "mmdvmhost.cfg")
 
 	if err != nil {
 		fmt.Printf("Fail to read file: %v", err)
@@ -38,8 +50,20 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	fs := http.FileServer(http.Dir("/home/ivan/sources/repka-star/webapp/web/repkastar/dist/"))
+	data, err := ioutil.ReadFile(os.Args[1])
+
+	if err != nil {
+		log.Fatalf("Could not open file %s", os.Args[1])
+	}
+
+	err = yaml.Unmarshal(data, &cfg)
+
+	if err != nil {
+		log.Fatalf("Could not parse %s", os.Args[1])
+	}
+
+	fs := http.FileServer(http.Dir(cfg.Webapp.Static))
 	http.Handle("/", fs)
 	http.HandleFunc("/api/", handler)
-	log.Fatal(http.ListenAndServe(":8085", nil))
+	log.Fatal(http.ListenAndServe(":"+cfg.Webapp.Port, nil))
 }
