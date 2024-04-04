@@ -23,46 +23,55 @@ type Cfg struct {
 var cfg Cfg
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "PUT" {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		fmt.Println(string(body))
-
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "content-type")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		fmt.Fprint(w, "ok")
-
-		return
-	}
-
-	cfg, err := ini.Load(cfg.Webapp.Path + "mmdvmhost.cfg")
+	iniCfg, err := ini.Load(cfg.Webapp.Path + "mmdvmhost.cfg")
 
 	if err != nil {
 		fmt.Printf("Fail to read file: %v", err)
 		os.Exit(1)
 	}
 
-	section, _ := cfg.GetSection(r.URL.Path[5:])
-
+	section, _ := iniCfg.GetSection(r.URL.Path[5:])
 	data := []map[string]any{}
-	for key, val := range section.KeysHash() {
-		fmt.Printf("%s - %s\r\n", key, val)
-		data = append(data, map[string]any{"key": key, "value": val})
-	}
 
-	js, err := json.Marshal(data)
+	response := "ok"
 
-	if err != nil {
-		os.Exit(1)
+	switch r.Method {
+	case "PUT":
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		err = json.Unmarshal(body, &data)
+		if err != nil {
+			os.Exit(1)
+		}
+
+		for _, el := range data {
+			fmt.Printf("%s: %s\r\n", el["key"], el["value"])
+			key := el["key"].(string)
+			value := el["value"].(string)
+			section.Key(key).SetValue(value)
+		}
+
+		iniCfg.SaveTo(cfg.Webapp.Path + "mmdvmhost.cfg")
+	default:
+		for key, val := range section.KeysHash() {
+			fmt.Printf("%s - %s\r\n", key, val)
+			data = append(data, map[string]any{"key": key, "value": val})
+		}
+
+		js, err := json.Marshal(data)
+		if err != nil {
+			os.Exit(1)
+		}
+		response = string(js)
 	}
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "content-type")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	fmt.Fprint(w, string(js))
+	fmt.Fprint(w, response)
 }
 
 func main() {
