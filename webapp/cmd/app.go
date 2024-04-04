@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -22,6 +23,21 @@ type Cfg struct {
 var cfg Cfg
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "PUT" {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		fmt.Println(string(body))
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "content-type")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		fmt.Fprint(w, "ok")
+
+		return
+	}
+
 	cfg, err := ini.Load(cfg.Webapp.Path + "mmdvmhost.cfg")
 
 	if err != nil {
@@ -44,6 +60,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "content-type")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	fmt.Fprint(w, string(js))
 }
