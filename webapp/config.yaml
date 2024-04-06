@@ -1,0 +1,4 @@
+webapp:
+  port: 8085
+  path: /home/ivan/sources/repka-star/
+  static: /home/ivan/sources/repka-star/webapp/ui/repkastar/dist
