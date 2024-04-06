@@ -20,6 +20,7 @@ export default {
     name: "ConfigEditor",
     data() {
         return {
+            service: '',
             section: '',
             config: {}
         }

@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${fileDirname}",
-            "args": ["/root/sources/repka-star/webapp/config.yaml"]
+            "args": ["../config.yaml"]
         }
     ]
 }

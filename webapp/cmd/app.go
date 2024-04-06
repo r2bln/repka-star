@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"gopkg.in/ini.v1"
 	"gopkg.in/yaml.v2"
@@ -14,26 +15,39 @@ import (
 
 type Cfg struct {
 	Webapp struct {
-		Port   string `yaml: "port"`
-		Path   string `yaml: "path"`
-		Static string `yaml: "static"`
+		Port                 string `yaml:"port"`
+		MmdvmhostConfigPath  string `yaml:"mmdvmhostConfigPath"`
+		DmrgatewayConfigPath string `yaml:"dmrgatewayConfigPath"`
+		Static               string `yaml:"static"`
 	}
 }
 
 var cfg Cfg
 
+func response(w http.ResponseWriter, resp string) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "content-type")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	fmt.Fprint(w, resp)
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
-	iniCfg, err := ini.Load(cfg.Webapp.Path + "mmdvmhost.cfg")
+	iniCfg, err := ini.Load(cfg.Webapp.MmdvmhostConfigPath)
 
 	if err != nil {
 		fmt.Printf("Fail to read file: %v", err)
 		os.Exit(1)
 	}
 
-	section, _ := iniCfg.GetSection(r.URL.Path[5:])
-	data := []map[string]any{}
+	pathParts := strings.Split(r.URL.Path, "/")
 
-	response := "ok"
+	section, err := iniCfg.GetSection(pathParts[2])
+	if err != nil {
+		response(w, fmt.Sprintf("No section %s", pathParts[2]))
+		return
+	}
+
+	data := []map[string]any{}
 
 	switch r.Method {
 	case "PUT":
@@ -54,7 +68,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			section.Key(key).SetValue(value)
 		}
 
-		iniCfg.SaveTo(cfg.Webapp.Path + "mmdvmhost.cfg")
+		iniCfg.SaveTo(cfg.Webapp.MmdvmhostConfigPath)
+		response(w, "saved")
 	default:
 		for key, val := range section.KeysHash() {
 			fmt.Printf("%s - %s\r\n", key, val)
@@ -65,13 +80,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			os.Exit(1)
 		}
-		response = string(js)
+		response(w, string(js))
 	}
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "content-type")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	fmt.Fprint(w, response)
 }
 
 func main() {
