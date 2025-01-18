@@ -14,7 +14,7 @@ mkdir tmp
 cd tmp
 
 echo 'Installing deps'
-apt install -y ripgrep cmake make g++ git libsamplerate-dev python3-dev python3-setuptools stm32flash
+apt install -y ripgrep cmake make g++ git libsamplerate-dev python3-dev python3-setuptools stm32flash ripgrep
 
 echo 'Cloning software'
 git clone https://github.com/g4klx/MMDVMHost

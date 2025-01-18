@@ -112,7 +112,7 @@ MMDVM_HS_Hat-v1.5.2 20201108 14.7456MHz ADF7021 FW by CA6JAU GitID #89daa20
 Я сделал `systemd` файлы [mmdvm.service](mmdvm.service) и [dmrgateway.service](dmrgateway.service) чтобы их использовать:
 
 - внутри можно поменять пути для `pid` файлов и расположения бинарей туда где всё лежит на вашей системе
-- скопировать файлы `*.system` в `/etc/systemd/system`
+- скопировать файлы `*.service` в `/etc/systemd/system`
 - инициализировать
     ```bash
     systemctl enable mmdvmhost
