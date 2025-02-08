@@ -1,0 +1,25 @@
+[Unit]
+Description=DMR switching bot
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=30
+StartLimitBurst=3
+
+[Service]
+Type=simple
+Restart=on-failure
+PIDFile=/root/bot.pid
+WorkingDirectory=/root/
+
+User=root
+Group=root
+
+OOMScoreAdjust=-1000
+
+ExecStart=/usr/bin/bot /etc/bot/config.yaml
+ExecStop=/bin/kill -HUP $MAINPID
+ExecReload=/bin/kill -HUP $MAINPID
+TimeoutSec=300
+
+[Install]
+WantedBy=multi-user.target
