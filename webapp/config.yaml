@@ -1,5 +1,4 @@
-webapp:
-  port: 8085
+bot:
   mmdvmhostConfigPath: /home/ivan/sources/repka-star/mmdvmhost.cfg
   dmrgatewayConfigPath: /home/ivan/sources/repka-star/dmrgateway.cfg
-  static: /home/ivan/sources/repka-star/webapp/ui/repkastar/dist
+  token: %secret%

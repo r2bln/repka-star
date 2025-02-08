@@ -1,2 +1,3 @@
 tmp/
 webapp/web/node_modules/
+webapp/vendor/

@@ -1,86 +1,117 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
-	"strings"
+	"os/signal"
 
 	"gopkg.in/ini.v1"
 	"gopkg.in/yaml.v2"
+
+	"github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
 )
 
 type Cfg struct {
-	Webapp struct {
-		Port                 string `yaml:"port"`
+	Bot struct {
 		MmdvmhostConfigPath  string `yaml:"mmdvmhostConfigPath"`
 		DmrgatewayConfigPath string `yaml:"dmrgatewayConfigPath"`
-		Static               string `yaml:"static"`
+		Token                string `yaml:"token"`
 	}
 }
 
 var cfg Cfg
 
-func response(w http.ResponseWriter, resp string) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "content-type")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	fmt.Fprint(w, resp)
+const MODE_BM = 1
+const MODE_QRA = 2
+
+func setMode(mode uint16) {
+	iniCfg, err := ini.Load(cfg.Bot.DmrgatewayConfigPath)
+
+	if err != nil {
+		log.Fatalf("Fail to read file: %v", err)
+	}
+
+	switch mode {
+	case MODE_BM:
+		section, err := iniCfg.GetSection("XLX Network")
+		if err != nil {
+			log.Fatal(err)
+		}
+		section.Key("Enabled").SetValue("0")
+		section, err = iniCfg.GetSection("DMR Network 1")
+		if err != nil {
+			log.Fatal(err)
+		}
+		section.Key("Enabled").SetValue("1")
+		iniCfg.SaveTo(cfg.Bot.DmrgatewayConfigPath)
+	case MODE_QRA:
+		section, err := iniCfg.GetSection("XLX Network")
+		if err != nil {
+			log.Fatal(err)
+		}
+		section.Key("Enabled").SetValue("1")
+		section, err = iniCfg.GetSection("DMR Network 1")
+		if err != nil {
+			log.Fatal(err)
+		}
+		section.Key("Enabled").SetValue("0")
+		iniCfg.SaveTo(cfg.Bot.DmrgatewayConfigPath)
+	default:
+		log.Fatalf("unknown mode")
+	}
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	iniCfg, err := ini.Load(cfg.Webapp.MmdvmhostConfigPath)
+func getMode() string {
+	iniCfg, err := ini.Load(cfg.Bot.DmrgatewayConfigPath)
 
 	if err != nil {
-		fmt.Printf("Fail to read file: %v", err)
-		os.Exit(1)
+		log.Fatalf("Fail to read file: %v", err)
 	}
 
-	pathParts := strings.Split(r.URL.Path, "/")
-
-	section, err := iniCfg.GetSection(pathParts[2])
+	section, err := iniCfg.GetSection("XLX Network")
 	if err != nil {
-		response(w, fmt.Sprintf("No section %s", pathParts[2]))
-		return
+		log.Fatal(err)
 	}
+	xlx := section.Key("Enabled").Value() == "1"
 
-	data := []map[string]any{}
+	section, err = iniCfg.GetSection("DMR Network 1")
+	if err != nil {
+		log.Fatal(err)
+	}
+	bm := section.Key("Enabled").Value() == "1"
 
-	switch r.Method {
-	case "PUT":
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			log.Fatalln(err)
-		}
+	return fmt.Sprintf("BrandMeister: %t, QRA: %t", bm, xlx)
+}
 
-		err = json.Unmarshal(body, &data)
-		if err != nil {
-			os.Exit(1)
-		}
+func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	switch update.Message.Text {
+	case "/status":
+		reply := getMode()
 
-		for _, el := range data {
-			fmt.Printf("%s: %s\r\n", el["key"], el["value"])
-			key := el["key"].(string)
-			value := el["value"].(string)
-			section.Key(key).SetValue(value)
-		}
-
-		iniCfg.SaveTo(cfg.Webapp.MmdvmhostConfigPath)
-		response(w, "saved")
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: update.Message.Chat.ID,
+			Text:   reply,
+		})
+	case "/gobm":
+		setMode(MODE_BM)
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: update.Message.Chat.ID,
+			Text:   "switching to BrandMeister: " + getMode(),
+		})
+	case "/goqra":
+		setMode(MODE_QRA)
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: update.Message.Chat.ID,
+			Text:   "switching to QRA: " + getMode(),
+		})
 	default:
-		for key, val := range section.KeysHash() {
-			fmt.Printf("%s - %s\r\n", key, val)
-			data = append(data, map[string]any{"key": key, "value": val})
-		}
-
-		js, err := json.Marshal(data)
-		if err != nil {
-			os.Exit(1)
-		}
-		response(w, string(js))
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: update.Message.Chat.ID,
+			Text:   "unknown command",
+		})
 	}
 }
 
@@ -97,8 +128,17 @@ func main() {
 		log.Fatalf("Could not parse %s", os.Args[1])
 	}
 
-	fs := http.FileServer(http.Dir(cfg.Webapp.Static))
-	http.Handle("/", fs)
-	http.HandleFunc("/api/", handler)
-	log.Fatal(http.ListenAndServe(":"+cfg.Webapp.Port, nil))
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
+	opts := []bot.Option{
+		bot.WithDefaultHandler(handler),
+	}
+
+	b, err := bot.New(cfg.Bot.Token, opts...)
+	if err != nil {
+		panic(err)
+	}
+
+	b.Start(ctx)
 }
