@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"os/signal"
 
 	"gopkg.in/ini.v1"
@@ -47,6 +48,7 @@ func setMode(mode uint16) {
 		}
 		section.Key("Enabled").SetValue("1")
 		iniCfg.SaveTo(cfg.Bot.DmrgatewayConfigPath)
+		exec.Command("systemctl restart dmrgateway")
 	case MODE_QRA:
 		section, err := iniCfg.GetSection("XLX Network")
 		if err != nil {
@@ -59,6 +61,7 @@ func setMode(mode uint16) {
 		}
 		section.Key("Enabled").SetValue("0")
 		iniCfg.SaveTo(cfg.Bot.DmrgatewayConfigPath)
+		exec.Command("systemctl restart dmrgateway")
 	default:
 		log.Fatalf("unknown mode")
 	}
