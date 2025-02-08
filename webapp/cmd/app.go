@@ -28,6 +28,13 @@ var cfg Cfg
 const MODE_BM = 1
 const MODE_QRA = 2
 
+func restartDaemon(serviceName string) {
+	cmd := exec.Command("systemctl", "restart", serviceName)
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("failed to restart service %s: %v", serviceName, err)
+	}
+}
+
 func setMode(mode uint16) {
 	iniCfg, err := ini.Load(cfg.Bot.DmrgatewayConfigPath)
 
@@ -48,7 +55,7 @@ func setMode(mode uint16) {
 		}
 		section.Key("Enabled").SetValue("1")
 		iniCfg.SaveTo(cfg.Bot.DmrgatewayConfigPath)
-		exec.Command("systemctl restart dmrgateway")
+		restartDaemon("dmrgateway.service")
 	case MODE_QRA:
 		section, err := iniCfg.GetSection("XLX Network")
 		if err != nil {
@@ -61,7 +68,7 @@ func setMode(mode uint16) {
 		}
 		section.Key("Enabled").SetValue("0")
 		iniCfg.SaveTo(cfg.Bot.DmrgatewayConfigPath)
-		exec.Command("systemctl restart dmrgateway")
+		restartDaemon("dmrgateway.service")
 	default:
 		log.Fatalf("unknown mode")
 	}
@@ -130,6 +137,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not parse %s", os.Args[1])
 	}
+
+	ini.PrettyFormat = false
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
