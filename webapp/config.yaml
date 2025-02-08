@@ -1,4 +1,0 @@
-bot:
-  mmdvmhostConfigPath: /home/ivan/sources/repka-star/mmdvmhost.cfg
-  dmrgatewayConfigPath: /home/ivan/sources/repka-star/dmrgateway.cfg
-  token: %secret%

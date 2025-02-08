@@ -20,6 +20,7 @@ type Cfg struct {
 		MmdvmhostConfigPath  string `yaml:"mmdvmhostConfigPath"`
 		DmrgatewayConfigPath string `yaml:"dmrgatewayConfigPath"`
 		Token                string `yaml:"token"`
+		Admin                string `yaml:"admin"`
 	}
 }
 
@@ -97,6 +98,14 @@ func getMode() string {
 }
 
 func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if update.Message.From.Username != cfg.Bot.Admin {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: update.Message.Chat.ID,
+			Text:   "no",
+		})
+		return
+	}
+
 	switch update.Message.Text {
 	case "/status":
 		reply := getMode()

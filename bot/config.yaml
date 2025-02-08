@@ -1,0 +1,5 @@
+bot:
+  mmdvmhostConfigPath: /etc/MMDVMHost/mmdvmhost.cfg
+  dmrgatewayConfigPath: /etc/DMRGateway/dmrgateway.cfg
+  admin: %tgusername%
+  token: %secret%
