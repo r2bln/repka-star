@@ -14,7 +14,7 @@ XLX_HOST := qra-team.online
 
 all: build
 
-deps:
+deps: check-root
 	apt-get update
 	apt-get install -y cmake make g++ git libsamplerate-dev nlohmann-json3-dev
 
@@ -30,7 +30,7 @@ $(MMDVM_DIR)/MMDVM-Host: $(MMDVM_DIR)
 $(DMR_DIR)/DMRGateway: $(DMR_DIR)
 	$(MAKE) -C $(DMR_DIR)
 
-build: $(MMDVM_DIR)/MMDVM-Host $(DMR_DIR)/DMRGateway
+build: deps $(MMDVM_DIR)/MMDVM-Host $(DMR_DIR)/DMRGateway
 
 check-root:
 	@if [ "$$(id -u)" != "0" ]; then echo "must be run as root" >&2; exit 1; fi
