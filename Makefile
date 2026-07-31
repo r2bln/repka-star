@@ -10,6 +10,8 @@ DMR_REPO   := https://github.com/g4klx/DMRGateway
 
 XLX_HOST := qra-team.online
 
+JOBS ?= $(shell nproc)
+
 .PHONY: all deps build install configs services xlxhosts check-config restart backup clean uninstall check-root
 
 all: build
@@ -25,10 +27,10 @@ $(DMR_DIR):
 	git clone --depth 1 $(DMR_REPO) $(DMR_DIR)
 
 $(MMDVM_DIR)/MMDVM-Host: $(MMDVM_DIR)
-	$(MAKE) -C $(MMDVM_DIR)
+	$(MAKE) -C $(MMDVM_DIR) -j$(JOBS)
 
 $(DMR_DIR)/DMRGateway: $(DMR_DIR)
-	$(MAKE) -C $(DMR_DIR)
+	$(MAKE) -C $(DMR_DIR) -j$(JOBS)
 
 build: deps $(MMDVM_DIR)/MMDVM-Host $(DMR_DIR)/DMRGateway
 
