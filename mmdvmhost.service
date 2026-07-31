@@ -1,13 +1,12 @@
 [Unit]
 Description=MMDVMHost
+After=network.target
 StartLimitIntervalSec=30
 StartLimitBurst=3
 
 [Service]
 Type=simple
 Restart=on-failure
-PIDFile=/root/mmdvmhost.pid
-WorkingDirectory=/root/
 
 User=root
 Group=root
@@ -15,9 +14,8 @@ Group=root
 OOMScoreAdjust=-1000
 
 ExecStart=/usr/bin/mmdvmhost /etc/MMDVMHost/mmdvmhost.cfg
-ExecStop=/bin/kill -HUP $MAINPID
 ExecReload=/bin/kill -HUP $MAINPID
-TimeoutSec=300
+TimeoutStopSec=20
 
 [Install]
-WantedBy=multi-user.target 
+WantedBy=multi-user.target

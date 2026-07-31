@@ -8,8 +8,6 @@ StartLimitBurst=3
 [Service]
 Type=simple
 Restart=on-failure
-PIDFile=/root/dmrgateway.pid
-WorkingDirectory=/root/
 
 User=root
 Group=root
@@ -17,9 +15,8 @@ Group=root
 OOMScoreAdjust=-1000
 
 ExecStart=/usr/bin/dmrgateway /etc/DMRGateway/dmrgateway.cfg
-ExecStop=/bin/kill -HUP $MAINPID
 ExecReload=/bin/kill -HUP $MAINPID
-TimeoutSec=300
+TimeoutStopSec=20
 
 [Install]
 WantedBy=multi-user.target
