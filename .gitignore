@@ -2,3 +2,5 @@ tmp/
 webapp/web/node_modules/
 bot/vendor/
 bot/bot
+build/
+.deps-stamp

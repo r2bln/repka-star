@@ -16,9 +16,13 @@ JOBS ?= $(shell n=$$(nproc); j=$$((n * 2 / 3)); [ $$j -ge 1 ] && echo $$j || ech
 
 all: build
 
-deps: check-root
+deps: .deps-stamp
+
+.deps-stamp:
+	@if [ "$$(id -u)" != "0" ]; then echo "must be run as root" >&2; exit 1; fi
 	apt-get update
-	apt-get install -y cmake make g++ git libsamplerate-dev nlohmann-json3-dev
+	apt-get install -y cmake make g++ git nlohmann-json3-dev libmosquitto-dev
+	touch .deps-stamp
 
 $(MMDVM_DIR):
 	git clone --depth 1 $(MMDVM_REPO) $(MMDVM_DIR)
@@ -37,9 +41,18 @@ build: deps $(MMDVM_DIR)/MMDVM-Host $(DMR_DIR)/DMRGateway
 check-root:
 	@if [ "$$(id -u)" != "0" ]; then echo "must be run as root" >&2; exit 1; fi
 
-install: check-root build
+install: check-root build configs services
 	install -m 755 $(MMDVM_DIR)/MMDVM-Host $(PREFIX)/mmdvmhost
 	install -m 755 $(DMR_DIR)/DMRGateway $(PREFIX)/dmrgateway
+	@echo
+	@echo "Установка завершена: бинари в $(PREFIX), конфиги в /etc/MMDVMHost и /etc/DMRGateway,"
+	@echo "systemd-юниты symlink'нуты в $(SYSTEMD_DIR) (сервисы НЕ включены и НЕ запущены)."
+	@-$(MAKE) --no-print-directory check-config
+	@echo "Перед запуском отредактируйте конфиги:"
+	@echo "  /etc/MMDVMHost/mmdvmhost.cfg"
+	@echo "  /etc/DMRGateway/dmrgateway.cfg"
+	@echo "После чего включите и запустите сервисы вручную:"
+	@echo "  systemctl enable --now mmdvmhost.service dmrgateway.service"
 
 configs: check-root
 	install -d /etc/MMDVMHost /etc/DMRGateway /var/log/MMDVMHost /var/log/DMRGateway
@@ -63,14 +76,6 @@ services: check-root
 	ln -sf $(CURDIR)/mmdvmhost.service $(SYSTEMD_DIR)/mmdvmhost.service
 	ln -sf $(CURDIR)/dmrgateway.service $(SYSTEMD_DIR)/dmrgateway.service
 	systemctl daemon-reload
-	@echo
-	@echo "systemd-юниты созданы (симлинки в $(SYSTEMD_DIR)), сервисы НЕ включены и НЕ запущены."
-	@-$(MAKE) --no-print-directory check-config
-	@echo "Перед запуском отредактируйте конфиги:"
-	@echo "  /etc/MMDVMHost/mmdvmhost.cfg"
-	@echo "  /etc/DMRGateway/dmrgateway.cfg"
-	@echo "После чего включите и запустите сервисы вручную:"
-	@echo "  systemctl enable --now mmdvmhost.service dmrgateway.service"
 
 restart: check-root
 	systemctl restart dmrgateway.service mmdvmhost.service
@@ -86,4 +91,4 @@ uninstall: check-root
 	rm -f $(PREFIX)/mmdvmhost $(PREFIX)/dmrgateway
 
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR) .deps-stamp
