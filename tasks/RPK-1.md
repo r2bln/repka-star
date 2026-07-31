@@ -30,3 +30,11 @@ Makefile готов и проверен end-to-end на реальной Repka P
 - Параллельная сборка: `JOBS ?= nproc*2/3` (на Repka Pi 3 2Gb полный `-j$(nproc)` вешал систему намертво — OOM без свопа, помогал только hard power cycle).
 - Сборка на обычном x86_64 (проверено на Debian 13) проходит чисто тем же Makefile'ом — если у кого-то раньше "не собиралось на x86", дело было в тех же отсутствующих dev-пакетах, а не в архитектуре. Собранный на x86 бинарь на саму Repka (aarch64) не встанет — архитектуры разные, нужен кросс-компайл/эмуляция, если понадобится собирать на стороне.
 - Баг конфига: `dmrgateway.cfg` не содержал `[General] Id=` (DMR ID репитера) — `Conf.cpp` инициализирует `m_id(0U)` и без явного `Id=` в `[General]` DMRGateway падает по `assert(id > 0U)` в `MMDVMNetwork.cpp:52` сразу при старте. Добавлено `Id=--dmrid--` в шаблон (ловится тем же `check-config`).
+- `mmdvmhost.cfg` был написан под старую версию апстрима и разошёлся с текущим HEAD, который клонирует наш `Makefile`:
+  - реальная причина краха (`assert(!address.empty())` в `DMRNetwork.cpp:54`) — `[DMR Network]` использовал устаревшие ключи `Address`/`Port`/`RemoteAddress`/`RemotePort`/`Type`/`Local`, а актуальный `Conf.cpp` понимает только `GatewayAddress`/`GatewayPort`/`LocalAddress`/`LocalPort`. Переписано на актуальную схему.
+  - частота модема (`NAK` на `SET_FREQ`, `TX/RX Frequency: 0Hz`) берётся из `[Modem] RXFrequency`/`TXFrequency`, а не из `[Info]` — добавлены плейсхолдеры `--freq--` в `[Modem]`.
+  - секция `[Info]` в текущем MMDVMHost вообще не существует (парсер её не знает) — по факту мёртвая, удалена вместе с `[General] Display=` и дублирующим `[Modem] Port=`.
+  - файловое логирование (`FileLevel`/`FilePath`/`FileRoot`/`FileRotate`) в апстриме выпилено, остался только `DisplayLevel` (лог идёт в journald) — `[Log]` секция урезана.
+  - вывод: при обновлении апстрима (`git clone --depth 1` тянет свежий HEAD) конфиг-шаблоны нужно периодически сверять со схемой `Conf.cpp` обоих проектов, они не гарантированно стабильны между версиями.
+
+Итог на 2026-07-31: `mmdvmhost` и `dmrgateway` оба `active (running)` на Repka Pi без ручного вмешательства после `make install` + правки DMR ID/частоты в конфиге.
