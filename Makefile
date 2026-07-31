@@ -10,7 +10,7 @@ DMR_REPO   := https://github.com/g4klx/DMRGateway
 
 XLX_HOST := qra-team.online
 
-JOBS ?= $(shell nproc)
+JOBS ?= $(shell n=$$(nproc); j=$$((n * 2 / 3)); [ $$j -ge 1 ] && echo $$j || echo 1)
 
 .PHONY: all deps build install configs services xlxhosts check-config restart backup clean uninstall check-root
 
