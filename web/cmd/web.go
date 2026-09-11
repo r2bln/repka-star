@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
+	"strings"
 
 	"gopkg.in/ini.v1"
 )
@@ -97,6 +98,11 @@ func writeConfig(cf ConfigFile, sections []Section) error {
 }
 
 func handleConfigs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	responses := make([]ConfigResponse, 0, len(configFiles))
 	for _, cf := range configFiles {
 		resp, err := readConfig(cf)
@@ -112,7 +118,12 @@ func handleConfigs(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleConfigSave(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	id := strings.TrimPrefix(r.URL.Path, "/api/configs/")
 	cf := findConfigFile(id)
 	if cf == nil {
 		http.Error(w, "unknown config id", http.StatusNotFound)
@@ -136,7 +147,12 @@ func handleConfigSave(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleRestart(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	id := strings.TrimPrefix(r.URL.Path, "/api/restart/")
 	cf := findConfigFile(id)
 	if cf == nil {
 		http.Error(w, "unknown config id", http.StatusNotFound)
@@ -172,9 +188,9 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.FileServer(http.FS(staticContent)))
-	mux.HandleFunc("GET /api/configs", handleConfigs)
-	mux.HandleFunc("POST /api/configs/{id}", handleConfigSave)
-	mux.HandleFunc("POST /api/restart/{id}", handleRestart)
+	mux.HandleFunc("/api/configs", handleConfigs)
+	mux.HandleFunc("/api/configs/", handleConfigSave)
+	mux.HandleFunc("/api/restart/", handleRestart)
 
 	log.Printf("repka-web слушает на %s", *listen)
 	log.Fatal(http.ListenAndServe(*listen, mux))
