@@ -2,7 +2,8 @@ function showStatus(text, isError) {
   const el = document.getElementById('status');
   el.textContent = text;
   el.className = isError ? 'status error' : 'status ok';
-  setTimeout(() => { el.textContent = ''; el.className = ''; }, 5000);
+  clearTimeout(showStatus.timer);
+  showStatus.timer = setTimeout(() => { el.textContent = ''; el.className = ''; }, 5000);
 }
 
 function fieldId(configId, sectionIndex, keyIndex) {
@@ -11,6 +12,7 @@ function fieldId(configId, sectionIndex, keyIndex) {
 
 function renderConfig(config) {
   const article = document.createElement('article');
+  article.id = `config-${config.id}`;
 
   const header = document.createElement('header');
   header.innerHTML = `<strong>${config.name}</strong> <small>${config.path}</small>`;
@@ -51,6 +53,12 @@ function renderConfig(config) {
   actions.appendChild(restartBtn);
 
   article.appendChild(actions);
+
+  const serviceState = document.createElement('p');
+  serviceState.className = 'service-state';
+  serviceState.id = `service-state-${config.id}`;
+  article.appendChild(serviceState);
+
   return article;
 }
 
@@ -64,6 +72,16 @@ function collectSections(config) {
   }));
 }
 
+function replaceConfigArticle(config) {
+  const old = document.getElementById(`config-${config.id}`);
+  const fresh = renderConfig(config);
+  if (old) {
+    old.replaceWith(fresh);
+  } else {
+    document.getElementById('configs').appendChild(fresh);
+  }
+}
+
 async function saveConfig(config) {
   try {
     const res = await fetch(`/api/configs/${config.id}`, {
@@ -72,17 +90,26 @@ async function saveConfig(config) {
       body: JSON.stringify({ sections: collectSections(config) }),
     });
     if (!res.ok) throw new Error(await res.text());
-    showStatus(`${config.name}: сохранено`, false);
+    const saved = await res.json();
+    replaceConfigArticle(saved);
+    showStatus(`${config.name}: сохранено и перечитано с диска`, false);
   } catch (err) {
     showStatus(`${config.name}: ошибка сохранения — ${err.message}`, true);
   }
 }
 
 async function restartService(config) {
+  const stateEl = document.getElementById(`service-state-${config.id}`);
   try {
     const res = await fetch(`/api/restart/${config.id}`, { method: 'POST' });
     if (!res.ok) throw new Error(await res.text());
-    showStatus(`${config.service}: перезапущен`, false);
+    const { service, status } = await res.json();
+    const active = status === 'active';
+    if (stateEl) {
+      stateEl.textContent = `${service}: ${status}`;
+      stateEl.className = `service-state ${active ? 'ok' : 'error'}`;
+    }
+    showStatus(`${service}: перезапущен, статус — ${status}`, !active);
   } catch (err) {
     showStatus(`${config.service}: ошибка перезапуска — ${err.message}`, true);
   }

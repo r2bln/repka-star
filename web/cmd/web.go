@@ -143,7 +143,14 @@ func handleConfigSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	resp, err := readConfig(*cf)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("saved but failed to re-read %s: %v", cf.Path, err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
 func handleRestart(w http.ResponseWriter, r *http.Request) {
@@ -165,7 +172,16 @@ func handleRestart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	status := "unknown"
+	if out, err := exec.Command("systemctl", "is-active", cf.Service).Output(); err == nil || len(out) > 0 {
+		status = strings.TrimSpace(string(out))
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(struct {
+		Service string `json:"service"`
+		Status  string `json:"status"`
+	}{Service: cf.Service, Status: status})
 }
 
 func main() {

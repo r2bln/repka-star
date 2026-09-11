@@ -5,6 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>repka-star</title>
 <link rel="stylesheet" href="/pico.min.css">
+<style>
+  #status {
+    position: sticky;
+    top: 0.5rem;
+    z-index: 10;
+    padding: 0;
+    min-height: 0;
+    border-radius: var(--pico-border-radius);
+    transition: padding 0.15s ease;
+  }
+  #status:not(:empty) {
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    font-weight: bold;
+  }
+  #status.ok { background: #1d5e2a; color: #fff; }
+  #status.error { background: #7a1f1f; color: #fff; }
+  .service-state { font-weight: bold; }
+  .service-state.ok { color: #2f9e44; }
+  .service-state.error { color: #e03131; }
+</style>
 </head>
 <body>
 <main class="container">
