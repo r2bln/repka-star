@@ -1,0 +1,18 @@
+[Unit]
+Description=repka-star web (remote config UI)
+After=network.target
+StartLimitIntervalSec=30
+StartLimitBurst=3
+
+[Service]
+Type=simple
+Restart=on-failure
+
+User=root
+Group=root
+
+ExecStart=/usr/bin/repka-web -listen :8080 -mmdvmhost-config /etc/MMDVMHost/mmdvmhost.cfg -dmrgateway-config /etc/DMRGateway/dmrgateway.cfg
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target
