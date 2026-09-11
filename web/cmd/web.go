@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"gopkg.in/ini.v1"
@@ -39,6 +40,7 @@ type ConfigResponse struct {
 	Name     string    `json:"name"`
 	Path     string    `json:"path"`
 	Service  string    `json:"service"`
+	Status   string    `json:"status"`
 	Sections []Section `json:"sections"`
 }
 
@@ -54,7 +56,7 @@ func findConfigFile(id string) *ConfigFile {
 }
 
 func readConfig(cf ConfigFile) (ConfigResponse, error) {
-	resp := ConfigResponse{ID: cf.ID, Name: cf.Name, Path: cf.Path, Service: cf.Service}
+	resp := ConfigResponse{ID: cf.ID, Name: cf.Name, Path: cf.Path, Service: cf.Service, Status: serviceStatus(cf.Service)}
 
 	iniCfg, err := ini.Load(cf.Path)
 	if err != nil {
@@ -172,16 +174,78 @@ func handleRestart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status := "unknown"
-	if out, err := exec.Command("systemctl", "is-active", cf.Service).Output(); err == nil || len(out) > 0 {
-		status = strings.TrimSpace(string(out))
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(struct {
+		Service string `json:"service"`
+		Status  string `json:"status"`
+	}{Service: cf.Service, Status: serviceStatus(cf.Service)})
+}
+
+const (
+	defaultLogLines = 200
+	maxLogLines     = 2000
+)
+
+func serviceStatus(service string) string {
+	out, err := exec.Command("systemctl", "is-active", service).Output()
+	if err != nil && len(out) == 0 {
+		return "unknown"
+	}
+	return strings.TrimSpace(string(out))
+}
+
+type ServiceStatus struct {
+	ID      string `json:"id"`
+	Service string `json:"service"`
+	Status  string `json:"status"`
+}
+
+func handleStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	statuses := make([]ServiceStatus, 0, len(configFiles))
+	for _, cf := range configFiles {
+		statuses = append(statuses, ServiceStatus{ID: cf.ID, Service: cf.Service, Status: serviceStatus(cf.Service)})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(statuses)
+}
+
+func handleLogs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	id := strings.TrimPrefix(r.URL.Path, "/api/logs/")
+	cf := findConfigFile(id)
+	if cf == nil {
+		http.Error(w, "unknown config id", http.StatusNotFound)
+		return
+	}
+
+	lines := defaultLogLines
+	if v := r.URL.Query().Get("lines"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= maxLogLines {
+			lines = n
+		}
+	}
+
+	out, err := exec.Command("journalctl", "-u", cf.Service, "-n", strconv.Itoa(lines), "--no-pager", "--output=short-iso").CombinedOutput()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to read journal for %s: %v: %s", cf.Service, err, out), http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(struct {
 		Service string `json:"service"`
-		Status  string `json:"status"`
-	}{Service: cf.Service, Status: status})
+		Log     string `json:"log"`
+	}{Service: cf.Service, Log: string(out)})
 }
 
 func main() {
@@ -207,6 +271,8 @@ func main() {
 	mux.HandleFunc("/api/configs", handleConfigs)
 	mux.HandleFunc("/api/configs/", handleConfigSave)
 	mux.HandleFunc("/api/restart/", handleRestart)
+	mux.HandleFunc("/api/logs/", handleLogs)
+	mux.HandleFunc("/api/status", handleStatus)
 
 	log.Printf("repka-web слушает на %s", *listen)
 	log.Fatal(http.ListenAndServe(*listen, mux))

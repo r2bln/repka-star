@@ -25,14 +25,48 @@
   .service-state { font-weight: bold; }
   .service-state.ok { color: #2f9e44; }
   .service-state.error { color: #e03131; }
+
+  .lamp {
+    display: inline-block;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 50%;
+    margin-left: 0.5rem;
+    background: #868e96;
+    vertical-align: middle;
+  }
+  .lamp.ok { background: #2f9e44; }
+  .lamp.error { background: #e03131; }
+
+  nav.tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+  nav.tabs button.outline { --pico-color: var(--pico-muted-color); }
+
+  pre.log {
+    max-height: 60vh;
+    overflow-y: auto;
+    background: var(--pico-code-background-color);
+    padding: 1rem;
+    font-size: 0.8rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
 </style>
 </head>
 <body>
 <main class="container">
   <h1>repka-star</h1>
   <p>Редактирование конфигов MMDVMHost / DMRGateway и перезапуск сервисов.</p>
+  <nav class="tabs">
+    <button type="button" data-tab="configs" id="tab-btn-configs">Конфиги</button>
+    <button type="button" data-tab="logs" id="tab-btn-logs" class="outline">Логи</button>
+  </nav>
   <div id="status"></div>
-  <div id="configs">Загрузка...</div>
+  <section id="view-configs">
+    <div id="configs">Загрузка...</div>
+  </section>
+  <section id="view-logs" hidden>
+    <div id="logs">Загрузка...</div>
+  </section>
 </main>
 <script src="/app.js"></script>
 </body>

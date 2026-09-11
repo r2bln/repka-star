@@ -1,3 +1,6 @@
+let configsData = [];
+let logsPollTimer = null;
+
 function showStatus(text, isError) {
   const el = document.getElementById('status');
   el.textContent = text;
@@ -10,12 +13,19 @@ function fieldId(configId, sectionIndex, keyIndex) {
   return `f-${configId}-${sectionIndex}-${keyIndex}`;
 }
 
+function setLamp(id, status) {
+  const lamp = document.getElementById(`lamp-${id}`);
+  if (!lamp) return;
+  lamp.className = `lamp ${status === 'active' ? 'ok' : 'error'}`;
+  lamp.title = status;
+}
+
 function renderConfig(config) {
   const article = document.createElement('article');
   article.id = `config-${config.id}`;
 
   const header = document.createElement('header');
-  header.innerHTML = `<strong>${config.name}</strong> <small>${config.path}</small>`;
+  header.innerHTML = `<strong>${config.name}</strong> <small>${config.path}</small> <span class="lamp" id="lamp-${config.id}" title="${config.status || ''}"></span>`;
   article.appendChild(header);
 
   config.sections.forEach((section, sIdx) => {
@@ -58,6 +68,10 @@ function renderConfig(config) {
   serviceState.className = 'service-state';
   serviceState.id = `service-state-${config.id}`;
   article.appendChild(serviceState);
+
+  if (config.status) {
+    setTimeout(() => setLamp(config.id, config.status), 0);
+  }
 
   return article;
 }
@@ -109,9 +123,21 @@ async function restartService(config) {
       stateEl.textContent = `${service}: ${status}`;
       stateEl.className = `service-state ${active ? 'ok' : 'error'}`;
     }
+    setLamp(config.id, status);
     showStatus(`${service}: перезапущен, статус — ${status}`, !active);
   } catch (err) {
     showStatus(`${config.service}: ошибка перезапуска — ${err.message}`, true);
+  }
+}
+
+async function pollStatus() {
+  try {
+    const res = await fetch('/api/status');
+    if (!res.ok) return;
+    const statuses = await res.json();
+    statuses.forEach(s => setLamp(s.id, s.status));
+  } catch (err) {
+    // тихо игнорируем — это фоновый опрос
   }
 }
 
@@ -120,12 +146,76 @@ async function loadConfigs() {
   try {
     const res = await fetch('/api/configs');
     if (!res.ok) throw new Error(await res.text());
-    const configs = await res.json();
+    configsData = await res.json();
     container.innerHTML = '';
-    configs.forEach(config => container.appendChild(renderConfig(config)));
+    configsData.forEach(config => container.appendChild(renderConfig(config)));
+    renderLogTabs();
   } catch (err) {
     container.textContent = `Не удалось загрузить конфиги: ${err.message}`;
   }
 }
 
+function renderLogTabs() {
+  const container = document.getElementById('logs');
+  container.innerHTML = '';
+  configsData.forEach(config => {
+    const article = document.createElement('article');
+
+    const header = document.createElement('header');
+    header.innerHTML = `<strong>${config.service}</strong>`;
+    article.appendChild(header);
+
+    const pre = document.createElement('pre');
+    pre.className = 'log';
+    pre.id = `log-${config.id}`;
+    pre.textContent = 'Загрузка...';
+    article.appendChild(pre);
+
+    const refreshBtn = document.createElement('button');
+    refreshBtn.className = 'secondary';
+    refreshBtn.textContent = 'Обновить';
+    refreshBtn.onclick = () => fetchLog(config);
+    article.appendChild(refreshBtn);
+
+    container.appendChild(article);
+  });
+}
+
+async function fetchLog(config) {
+  const pre = document.getElementById(`log-${config.id}`);
+  if (!pre) return;
+  try {
+    const res = await fetch(`/api/logs/${config.id}?lines=200`);
+    if (!res.ok) throw new Error(await res.text());
+    const { log } = await res.json();
+    pre.textContent = log || '(пусто)';
+    pre.scrollTop = pre.scrollHeight;
+  } catch (err) {
+    pre.textContent = `Не удалось загрузить журнал: ${err.message}`;
+  }
+}
+
+function fetchAllLogs() {
+  configsData.forEach(fetchLog);
+}
+
+function switchTab(tab) {
+  document.getElementById('view-configs').hidden = tab !== 'configs';
+  document.getElementById('view-logs').hidden = tab !== 'logs';
+  document.getElementById('tab-btn-configs').className = tab === 'configs' ? '' : 'outline';
+  document.getElementById('tab-btn-logs').className = tab === 'logs' ? '' : 'outline';
+
+  clearInterval(logsPollTimer);
+  logsPollTimer = null;
+
+  if (tab === 'logs') {
+    fetchAllLogs();
+    logsPollTimer = setInterval(fetchAllLogs, 5000);
+  }
+}
+
+document.getElementById('tab-btn-configs').onclick = () => switchTab('configs');
+document.getElementById('tab-btn-logs').onclick = () => switchTab('logs');
+
 loadConfigs();
+setInterval(pollStatus, 5000);
