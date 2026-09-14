@@ -42,6 +42,8 @@
   nav.tabs button { width: auto; flex: 0 0 auto; }
   nav.tabs button.outline { --pico-color: var(--pico-muted-color); }
 
+  #mode-switch .grid button { margin-bottom: 0; }
+
   pre.log {
     max-height: 60vh;
     overflow-y: auto;
@@ -63,6 +65,14 @@
   </nav>
   <div id="status"></div>
   <section id="view-configs">
+    <article id="mode-switch">
+      <header><strong>Режим DMRGateway</strong> <span class="lamp" id="mode-lamp"></span></header>
+      <div class="grid">
+        <button type="button" id="mode-btn-bm">BrandMeister</button>
+        <button type="button" id="mode-btn-qra">QRA / XLX</button>
+      </div>
+      <p class="service-state" id="mode-state">Загрузка...</p>
+    </article>
     <div id="configs">Загрузка...</div>
   </section>
   <section id="view-logs" hidden>

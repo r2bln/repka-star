@@ -182,6 +182,127 @@ func handleRestart(w http.ResponseWriter, r *http.Request) {
 }
 
 const (
+	xlxSection = "XLX Network"
+	bmSection  = "DMR Network 1"
+)
+
+type ModeResponse struct {
+	Mode   string `json:"mode"`
+	Status string `json:"status"`
+}
+
+func readMode(cf ConfigFile) (string, error) {
+	iniCfg, err := ini.Load(cf.Path)
+	if err != nil {
+		return "", err
+	}
+
+	xlxSec, err := iniCfg.GetSection(xlxSection)
+	if err != nil {
+		return "", err
+	}
+	bmSec, err := iniCfg.GetSection(bmSection)
+	if err != nil {
+		return "", err
+	}
+
+	xlxOn := xlxSec.Key("Enabled").Value() == "1"
+	bmOn := bmSec.Key("Enabled").Value() == "1"
+
+	switch {
+	case bmOn && !xlxOn:
+		return "bm", nil
+	case xlxOn && !bmOn:
+		return "qra", nil
+	default:
+		return "unknown", nil
+	}
+}
+
+func writeMode(cf ConfigFile, mode string) error {
+	iniCfg, err := ini.Load(cf.Path)
+	if err != nil {
+		return err
+	}
+
+	xlxSec, err := iniCfg.GetSection(xlxSection)
+	if err != nil {
+		return err
+	}
+	bmSec, err := iniCfg.GetSection(bmSection)
+	if err != nil {
+		return err
+	}
+
+	switch mode {
+	case "bm":
+		xlxSec.Key("Enabled").SetValue("0")
+		bmSec.Key("Enabled").SetValue("1")
+	case "qra":
+		xlxSec.Key("Enabled").SetValue("1")
+		bmSec.Key("Enabled").SetValue("0")
+	default:
+		return fmt.Errorf("unknown mode %q", mode)
+	}
+
+	return iniCfg.SaveTo(cf.Path)
+}
+
+func handleMode(w http.ResponseWriter, r *http.Request) {
+	cf := findConfigFile("dmrgateway")
+	if cf == nil {
+		http.Error(w, "dmrgateway config not registered", http.StatusInternalServerError)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		mode, err := readMode(*cf)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to read mode: %v", err), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(ModeResponse{Mode: mode, Status: serviceStatus(cf.Service)})
+
+	case http.MethodPost:
+		var body struct {
+			Mode string `json:"mode"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, fmt.Sprintf("invalid request body: %v", err), http.StatusBadRequest)
+			return
+		}
+		if body.Mode != "bm" && body.Mode != "qra" {
+			http.Error(w, `mode must be "bm" or "qra"`, http.StatusBadRequest)
+			return
+		}
+
+		if err := writeMode(*cf, body.Mode); err != nil {
+			http.Error(w, fmt.Sprintf("failed to save mode: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		cmd := exec.Command("systemctl", "restart", cf.Service)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			http.Error(w, fmt.Sprintf("failed to restart %s: %v: %s", cf.Service, err, out), http.StatusInternalServerError)
+			return
+		}
+
+		mode, err := readMode(*cf)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("saved but failed to re-read mode: %v", err), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(ModeResponse{Mode: mode, Status: serviceStatus(cf.Service)})
+
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+const (
 	defaultLogLines = 200
 	maxLogLines     = 2000
 )
@@ -273,6 +394,7 @@ func main() {
 	mux.HandleFunc("/api/restart/", handleRestart)
 	mux.HandleFunc("/api/logs/", handleLogs)
 	mux.HandleFunc("/api/status", handleStatus)
+	mux.HandleFunc("/api/mode", handleMode)
 
 	log.Printf("repka-web слушает на %s", *listen)
 	log.Fatal(http.ListenAndServe(*listen, mux))

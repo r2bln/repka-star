@@ -130,6 +130,64 @@ async function restartService(config) {
   }
 }
 
+function setModeLamp(status) {
+  const lamp = document.getElementById('mode-lamp');
+  if (!lamp) return;
+  lamp.className = `lamp ${status === 'active' ? 'ok' : 'error'}`;
+  lamp.title = status;
+}
+
+function updateModeUI(mode, status) {
+  const labels = { bm: 'BrandMeister', qra: 'QRA / XLX' };
+  document.getElementById('mode-btn-bm').className = mode === 'bm' ? '' : 'outline';
+  document.getElementById('mode-btn-qra').className = mode === 'qra' ? '' : 'outline';
+
+  const stateEl = document.getElementById('mode-state');
+  stateEl.textContent = `Текущий режим: ${labels[mode] || 'неизвестно'}, dmrgateway.service — ${status}`;
+  stateEl.className = `service-state ${status === 'active' ? 'ok' : 'error'}`;
+
+  setModeLamp(status);
+}
+
+async function loadMode() {
+  try {
+    const res = await fetch('/api/mode');
+    if (!res.ok) throw new Error(await res.text());
+    const { mode, status } = await res.json();
+    updateModeUI(mode, status);
+  } catch (err) {
+    document.getElementById('mode-state').textContent = `Не удалось получить режим: ${err.message}`;
+  }
+}
+
+async function switchMode(mode) {
+  const bmBtn = document.getElementById('mode-btn-bm');
+  const qraBtn = document.getElementById('mode-btn-qra');
+  bmBtn.disabled = true;
+  qraBtn.disabled = true;
+  try {
+    const res = await fetch('/api/mode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const { mode: newMode, status } = await res.json();
+    updateModeUI(newMode, status);
+    const label = newMode === 'bm' ? 'BrandMeister' : 'QRA / XLX';
+    showStatus(`Режим переключён: ${label}, dmrgateway.service — ${status}`, status !== 'active');
+    loadConfigs();
+  } catch (err) {
+    showStatus(`Не удалось переключить режим — ${err.message}`, true);
+  } finally {
+    bmBtn.disabled = false;
+    qraBtn.disabled = false;
+  }
+}
+
+document.getElementById('mode-btn-bm').onclick = () => switchMode('bm');
+document.getElementById('mode-btn-qra').onclick = () => switchMode('qra');
+
 async function pollStatus() {
   try {
     const res = await fetch('/api/status');
@@ -218,4 +276,6 @@ document.getElementById('tab-btn-configs').onclick = () => switchTab('configs');
 document.getElementById('tab-btn-logs').onclick = () => switchTab('logs');
 
 loadConfigs();
+loadMode();
 setInterval(pollStatus, 5000);
+setInterval(loadMode, 5000);
