@@ -13,7 +13,7 @@
 
 Проверено локально: сборка (`go build`, `go vet`, `gofmt -l` чисто) и end-to-end через curl на копии реального `dmrgateway.cfg` — `GET /api/mode` корректно определяет `bm` из `Enabled=1/0`, `POST` с `qra`/`bm` меняет пару значений на диск (проверено grep'ом секций до/после), `POST` с невалидным `mode` — `400`. Рестарт `dmrgateway.service` на деве закономерно фейлится (`Unit dmrgateway.service not found` — юнит не установлен на дев-машине), это ожидаемо и не отличается от уже имеющегося поведения `/api/restart/{id}`.
 
-Задеплоено на реальную Repka Pi (`repka-pi` в tailscale, `192.168.1.70` в LAN): `git push` + `git pull` + `make build/repka-web` + `make install` + `systemctl restart web.service` (только web, `mmdvmhost`/`dmrgateway` не трогали — их бинари не менялись).
+Задеплоено на реальную Repka Pi (`<repka-host>`): `git push` + `git pull` + `make build/repka-web` + `make install` + `systemctl restart web.service` (только web, `mmdvmhost`/`dmrgateway` не трогали — их бинари не менялись).
 
 ## Known issues
 
