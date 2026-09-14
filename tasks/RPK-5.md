@@ -13,6 +13,20 @@
 
 Проверено локально: сборка (`go build`, `go vet`, `gofmt -l` чисто) и end-to-end через curl на копии реального `dmrgateway.cfg` — `GET /api/mode` корректно определяет `bm` из `Enabled=1/0`, `POST` с `qra`/`bm` меняет пару значений на диск (проверено grep'ом секций до/после), `POST` с невалидным `mode` — `400`. Рестарт `dmrgateway.service` на деве закономерно фейлится (`Unit dmrgateway.service not found` — юнит не установлен на дев-машине), это ожидаемо и не отличается от уже имеющегося поведения `/api/restart/{id}`.
 
+Задеплоено на реальную Repka Pi (`repka-pi` в tailscale, `192.168.1.70` в LAN): `git push` + `git pull` + `make build/repka-web` + `make install` + `systemctl restart web.service` (только web, `mmdvmhost`/`dmrgateway` не трогали — их бинари не менялись).
+
 ## Known issues
 
-Не задеплоено на реальную Repka Pi (`192.168.1.70`) — сделано только локально. Нужно после `git pull` пересобрать `repka-web` (`make build` / `make install`) и проверить переключение на реальном `dmrgateway.cfg` с реальными секциями `[DMR Network 1]`/`[XLX Network]`.
+Нет открытых. Ниже — закрытый инцидент.
+
+### [Resolved] Переключение в QRA/XLX через новый тоггл уронило dmrgateway на реальном устройстве
+
+При первой живой проверке тоггла (пользователь нажал «QRA / XLX» в веб-интерфейсе) `dmrgateway.service` ушёл в `failed` (`Start request repeated too quickly`, `StartLimitBurst` исчерпан за секунды).
+
+Причина — не в самом тоггле: конфиг переключился верно (`[XLX Network] Enabled=1`, `[DMR Network 1] Enabled=0`), но на устройстве никогда не запускался `make xlxhosts` — отдельный таргет Makefile, который резолвит `qra-team.online` и пишет `/etc/DMRGateway/XLXHosts.txt`. Файла не было, DMRGateway логировал `Loaded 0 XLX reflectors` и тут же падал с exit 1 — раньше это было незаметно, потому что XLX ни разу не включали на этом устройстве с момента `make install`.
+
+Фикс:
+1. Немедленно на устройстве: `make xlxhosts` (создал `/etc/DMRGateway/XLXHosts.txt`) → `systemctl reset-failed dmrgateway.service` → `systemctl restart dmrgateway.service`. Подтверждено логами: `Logged into the master successfully`, `Linking to reflector XLX496 A`. `GET /api/mode` → `{"mode":"qra","status":"active"}`.
+2. В репозитории: `xlxhosts` добавлен в зависимости таргета `install` (`install: check-root build configs xlxhosts services`), чтобы `XLXHosts.txt` создавался при любом `make install`, а не только вручную по памяти — иначе тот же баг повторится на любом новом устройстве RPK-4 или после `make uninstall`+переустановки.
+
+Вывод на будущее: раз тоггл BM/QRA стал доступен из веба (а не только через недеплоенного бота), нужно чтобы все предпосылки для обоих режимов (в т.ч. `XLXHosts.txt`) закрывались самим `make install`, а не оставались скрытым ручным шагом — иначе включение «второй», реже используемой ветки конфига через UI будет неожиданно ронять живой сервис.

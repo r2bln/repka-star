@@ -49,7 +49,7 @@ build: deps $(MMDVM_DIR)/MMDVM-Host $(DMR_DIR)/DMRGateway $(WEB_BIN)
 check-root:
 	@if [ "$$(id -u)" != "0" ]; then echo "must be run as root" >&2; exit 1; fi
 
-install: check-root build configs services
+install: check-root build configs xlxhosts services
 	install -m 755 $(MMDVM_DIR)/MMDVM-Host $(PREFIX)/mmdvmhost
 	install -m 755 $(DMR_DIR)/DMRGateway $(PREFIX)/dmrgateway
 	install -m 755 $(WEB_BIN) $(PREFIX)/repka-web
