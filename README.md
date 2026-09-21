@@ -6,6 +6,7 @@ DMR-хотспот на базе [MMDVMHost](https://github.com/g4klx/MMDVMHost)
 
 - `Makefile` — сборка, установка и настройка сервисов одной командой.
 - `mmdvmhost.cfg`, `dmrgateway.cfg` — конфиги-шаблоны с плейсхолдерами вместо личных данных.
+- `oled/`, `mmdvm-display.*`, `mmdvm-info.*` — опциональный вывод статуса на OLED-дисплей шляпы (`make install OLED=1`).
 - `web/` — веб-интерфейс для редактирования конфигов, просмотра логов и переключения BrandMeister/QRA-XLX без SSH.
 - `bot/` — телеграм-бот с тем же переключением BrandMeister/QRA-XLX прямо из чата.
 - `tasks/` — журнал решений по каждой задаче (что сломалось, почему, как починили) — читать, если что-то из описанного ниже не работает так, как ожидается.
@@ -196,6 +197,38 @@ sudo systemctl enable --now mmdvmhost.service dmrgateway.service web.service
 ```bash
 systemctl status mmdvmhost.service dmrgateway.service web.service
 ```
+
+## OLED-дисплей (опционально)
+
+На шляпе может стоять OLED 128x64 (SSD1306) на I2C. В актуальном MMDVMHost вывода на дисплеи больше нет — он публикует состояние в MQTT, а рисует его отдельная программа [MMDVM-Display](https://github.com/g4klx/MMDVM-Display) (IP и температуру ей поставляет [MMDVM-Info](https://github.com/g4klx/MMDVM-Info)). Схема: `mmdvmhost` → `mosquitto` → `mmdvm-display` → `/dev/i2c-N`.
+
+Перед установкой в `repka-config` должен быть включён оверлей `i2c1`; проверить, что дисплей виден, можно так (нужен адрес `3c`):
+
+```bash
+i2cdetect -y 1
+```
+
+Ставим с ключом `OLED=1`:
+
+```bash
+sudo make install OLED=1
+```
+
+Дополнительно к обычной установке он:
+
+1. поставит `mosquitto` (MQTT-брокер) и `i2c-tools`;
+2. соберёт `MMDVM-Info` и `MMDVM-Display` вместе с библиотекой [ArduiPi_OLED](https://github.com/hallard/ArduiPi_OLED) — оригинал привязан к регистрам Raspberry Pi, поэтому её `bcm2835`-слой заменён на `oled/bcm2835.{c,h}` (то же API поверх `/dev/i2c-N`);
+3. положит `mmdvm-display.ini` и `mmdvm-info.ini` в `/etc/MMDVMHost` и добавит в `mmdvmhost.cfg` секцию `[MQTT] Name=host`, если её нет (без неё MMDVMHost публикует под именем `mmdvm`, а Display слушает `host`);
+4. засимлинкает юниты `mmdvm-display.service` и `mmdvm-info.service`.
+
+Сервисы, как и остальные, сами не включаются:
+
+```bash
+sudo systemctl enable --now mosquitto mmdvm-info mmdvm-display
+sudo systemctl restart mmdvmhost
+```
+
+Если экран остаётся тёмным: убедитесь, что шина в `mmdvm-display.service` (`OLED_I2C_DEV`) — та, где `i2cdetect` показывает `3c`; если картинка съехала или со шумом по краям — в `mmdvm-display.ini` смените `Type=3` (SSD1306) на `Type=6` (SH1106).
 
 ## Веб-интерфейс
 
