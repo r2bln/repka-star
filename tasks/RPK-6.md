@@ -1,0 +1,25 @@
+# RPK-6: Вывод на OLED-дисплей шляпы (`make install OLED=1`)
+
+На MMDVM-шляпе стоит OLED 128x64 (SSD1306, I2C, адрес `0x3C`), на Репке он виден через `i2cdetect` на шине i2c-1 (оверлей `i2c1`), но ничего не показывал. В конфиге стояло `Display=OLED`, однако это ни на что не влияло.
+
+## Почему «просто пересобрать MMDVMHost с OLED» не работает
+
+1. В актуальном мастере MMDVMHost (сентябрь 2026) **удалён весь дисплейный код** (нет ни `Display.cpp`, ни `OLED.cpp`, ни `Makefile.Pi.OLED`); хост публикует состояние в MQTT. Ключ `Display=` в конфиге молча игнорируется. Дисплеи переехали в отдельную программу `g4klx/MMDVM-Display` (подписывается на MQTT хоста и на `MMDVM-Info`), в её Makefile OLED включается флагом `-DUSE_OLED` и линковкой с `-lArduiPi_OLED`.
+2. Библиотека `hallard/ArduiPi_OLED` (нужна `MMDVM-Display` для OLED) через `bcm2835.c` пишет прямо в регистры периферии Raspberry Pi (`/dev/mem`). На Allwinner H3 (Репка) это не работает; её Makefile к тому же собирает под `armv6`/`-mfpu`, что не годится для aarch64.
+
+## Решение
+
+- `oled/bcm2835.{h,c}` — тонкая замена `bcm2835`-слоя библиотеки: используемое ей подмножество API (`init`, `i2c_begin`, `i2c_setSlaveAddress`, `i2c_write`, GPIO/SPI-заглушки) реализовано поверх ядерного `/dev/i2c-N` (`ioctl(I2C_SLAVE)` + `write`). Шина выбирается переменной `OLED_I2C_DEV` (по умолчанию `/dev/i2c-1`). Из GPIO reset у SSD1306 на шляпе нет, поэтому пины — no-op. Поддержан только I2C.
+- В `Makefile` ключ `OLED=1` (по умолчанию `0`, обычная сборка не меняется): ставит `mosquitto`/`mosquitto-clients`/`i2c-tools` (отдельный `.deps-oled-stamp`), клонирует `ArduiPi_OLED`, `MMDVM-Display`, `MMDVM-Info`, подкладывает `oled/bcm2835.*` вместо оригинальных, собирает библиотеку **статически** (`libArduiPi_OLED.a` — ставить её в систему не нужно), линкует с ней `MMDVM-Display` (`CFLAGS`/`LIBS`/`LDFLAGS` переопределяются в командной строке `make`, апстримный Makefile не патчится), ставит бинари `mmdvm-display`/`mmdvm-info`, конфиги (`cp -n`) и юниты. `uninstall` и `clean` знают про новые файлы.
+- Юниты `mmdvm-display.service`/`mmdvm-info.service`; в `mmdvmhost.service` добавлен `After=mosquitto.service` (MMDVMHost подключается к брокеру один раз при старте и без брокера тихо работает без публикации).
+- MMDVMHost по умолчанию публикует под именем `mmdvm`, а `MMDVM-Display` слушает `host`, поэтому в шаблон `mmdvmhost.cfg` добавлена секция `[MQTT] Name=host`; для уже установленных устройств `make install-oled` дописывает её, если секции нет.
+
+## Проверено
+
+На реальной Репке (aarch64, Ubuntu 22.04): сборка `make OLED=1` (библиотека + `MMDVM-Display` + `MMDVM-Info`) проходит; `mosquitto` поднимается; `MMDVM-Info` публикует конфиг и адреса, `MMDVM-Display` их получает; `strace` показывает открытие `/dev/i2c-1` и 238 записей за 6 секунд без единой ошибки, с корректной инициализацией SSD1306 (`0xAE`, `0xA8`, charge pump `0x8D 0x14`, …). `make install-oled` прогнан дважды (секция `[MQTT]` дописывается один раз), `mosquitto`, `mmdvm-info`, `mmdvm-display`, `mmdvmhost` активны, MMDVMHost подключается к брокеру как `host`, а Display получает его сообщения. Отдельно проверено, что дисплей отвечает на голые команды по `i2cset` (режим «все пиксели включены»).
+
+## Known issues
+
+- Не проверено на живом трафике: в момент разработки модем на устройстве не отвечал (`Unable to read the firmware version after six attempts`, `mmdvmhost` уходил в цикл перезапусков), поэтому строка состояния хоста (IDLE/DMR-вызовы) на экране не наблюдалась. Причина, судя по всему, аппаратная (питание/посадка шляпы), к этой задаче не относится.
+- Только I2C-дисплеи. SPI-варианты SSD1306 (`Type=0/1`) не поддерживаются заглушками `bcm2835_spi_*`.
+- Брокер `mosquitto` из пакета Ubuntu 22.04 (2.0) по умолчанию слушает только `localhost` — так и нужно; наружу порт 1883 не открываем.

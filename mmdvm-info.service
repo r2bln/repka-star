@@ -1,21 +1,16 @@
 [Unit]
-Description=MMDVMHost
+Description=MMDVM-Info (environment info for MMDVM displays over MQTT)
 After=network.target mosquitto.service
+Wants=mosquitto.service
 StartLimitIntervalSec=30
 StartLimitBurst=3
 
 [Service]
 Type=simple
 Restart=on-failure
-
 User=root
 Group=root
-
-OOMScoreAdjust=-1000
-
-ExecStart=/usr/bin/mmdvmhost /etc/MMDVMHost/mmdvmhost.cfg
-ExecReload=/bin/kill -HUP $MAINPID
-TimeoutStopSec=20
+ExecStart=/usr/bin/mmdvm-info /etc/MMDVMHost/mmdvm-info.ini
 
 [Install]
 WantedBy=multi-user.target

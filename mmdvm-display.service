@@ -1,0 +1,18 @@
+[Unit]
+Description=MMDVM-Display (OLED driver for MMDVMHost over MQTT)
+After=network.target mosquitto.service mmdvmhost.service
+Wants=mosquitto.service
+StartLimitIntervalSec=30
+StartLimitBurst=3
+
+[Service]
+Type=simple
+Restart=on-failure
+User=root
+Group=root
+# Шина I2C, на которой сидит дисплей (i2cdetect -y N должен показать 3c)
+Environment=OLED_I2C_DEV=/dev/i2c-1
+ExecStart=/usr/bin/mmdvm-display /etc/MMDVMHost/mmdvm-display.ini
+
+[Install]
+WantedBy=multi-user.target

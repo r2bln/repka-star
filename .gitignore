@@ -4,3 +4,4 @@ bot/vendor/
 bot/bot
 build/
 .deps-stamp
+.deps-oled-stamp
