@@ -85,7 +85,13 @@ $(DISPLAY_DIR):
 $(INFO_DIR):
 	git clone --depth 1 $(INFO_REPO) $(INFO_DIR)
 
-$(DISPLAY_DIR)/MMDVM-Display: $(OLED_LIB) | $(DISPLAY_DIR)
+# OLED-драйвер выводит температуру захардкоженно как "NNF / NNC" и игнорирует TemperatureInF —
+# оставляем только градусы Цельсия. Если апстрим поменяет строку, sed просто ничего не найдёт.
+$(DISPLAY_DIR)/.celsius: | $(DISPLAY_DIR)
+	sed -i 's|"Temp: %.0fF / %.0fC ", m_tempF, m_tempC|"Temp: %.0fC ", m_tempC|' $(DISPLAY_DIR)/OLED.cpp
+	touch $@
+
+$(DISPLAY_DIR)/MMDVM-Display: $(OLED_LIB) $(DISPLAY_DIR)/.celsius | $(DISPLAY_DIR)
 	$(MAKE) -C $(DISPLAY_DIR) -j$(JOBS) MMDVM-Display \
 		CFLAGS="-g -O3 -Wall -std=c++11 -MMD -MD -pthread -DUSE_OLED -I$(CURDIR)/$(OLED_LIB_DIR)" \
 		LIBS="-lArduiPi_OLED -lpthread -lutil -lmosquitto" \
